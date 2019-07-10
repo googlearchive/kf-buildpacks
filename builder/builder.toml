@@ -1,0 +1,76 @@
+[[buildpacks]]
+id = "org.cloudfoundry.archiveexpanding"
+uri = "./archive-expanding-cnb/"
+latest = true
+
+[[buildpacks]]
+id = "org.cloudfoundry.openjdk"
+uri = "./openjdk-cnb/"
+latest = true
+
+[[buildpacks]]
+id = "org.cloudfoundry.buildsystem"
+uri = "./build-system-cnb/"
+latest = true
+
+[[buildpacks]]
+id = "org.cloudfoundry.jvmapplication"
+uri = "./jvm-application-cnb/"
+latest = true
+
+[[buildpacks]]
+id = "org.cloudfoundry.springboot"
+uri = "./spring-boot-cnb/"
+latest = true
+
+[[buildpacks]]
+id = "org.cloudfoundry.tomcat"
+uri = "./tomcat-cnb/"
+latest = true
+
+[[buildpacks]]
+id = "org.cloudfoundry.procfile"
+uri = "./procfile-cnb/"
+latest = true
+
+[[buildpacks]]
+id = "org.cloudfoundry.googlestackdriver"
+uri = "./google-stackdriver-cnb/"
+latest = true
+
+[[buildpacks]]
+id = "io.buildpacks.samples.nodejs"
+uri = "./nodejs-buildpack"
+latest = true
+
+[[buildpacks]]
+id = "io.buildpacks.samples.go"
+uri = "./go-buildpack"
+latest = true
+
+[[groups]]
+buildpacks = [
+  { id = "io.buildpacks.samples.nodejs", version = "latest" },
+]
+
+[[groups]]
+buildpacks = [
+  { id = "io.buildpacks.samples.go", version = "latest" },
+]
+
+[[groups]]
+buildpacks = [
+  { id = "org.cloudfoundry.archiveexpanding", version = "latest", optional = true },
+  { id = "org.cloudfoundry.openjdk", version = "latest", optional = false },
+  { id = "org.cloudfoundry.buildsystem", version = "latest", optional = true },
+  { id = "org.cloudfoundry.jvmapplication", version = "latest", optional = false },
+  { id = "org.cloudfoundry.springboot", version = "latest", optional = true },
+  { id = "org.cloudfoundry.tomcat", version = "latest", optional = true },
+  { id = "org.cloudfoundry.procfile", version = "latest", optional = true },
+  { id = "org.cloudfoundry.googlestackdriver", version = "latest", optional = true },
+]
+
+[stack]
+id = "io.buildpacks.stacks.bionic"
+run-image = "gcr.io/kf-releases/run:latest"
+build-image = "gcr.io/kf-releases/build:latest"

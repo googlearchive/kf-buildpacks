@@ -72,5 +72,5 @@ buildpacks = [
 
 [stack]
 id = "io.buildpacks.stacks.bionic"
-run-image = "gcr.io/kf-releases/run:latest"
-build-image = "gcr.io/kf-releases/build:latest"
+run-image = "REPLACE_WITH_REGISTRY/run:latest"
+build-image = "REPLACE_WITH_REGISTRY/build:latest"

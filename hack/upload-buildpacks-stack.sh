@@ -23,7 +23,7 @@ shift
 
 readonly version=${1:-latest}
 
-rootpath=$(cd $(dirname $0)/.. && pwd)
+rootpath=$(cd "$(dirname "$0")/.." && pwd)
 dir=${rootpath}/stacks/bionic
 
 base_image=${registry}/base:${version}
@@ -36,10 +36,10 @@ docker build --build-arg "base_image=${base_image}" -t "${build_image}"  "$dir/b
 echo "Run image: ${run_image}"
 docker build --build-arg "base_image=${base_image}" -t "${run_image}" "$dir/run"
 
-if [ $publish == "true" ]; then
+if [ "$publish" == "true" ]; then
     echo "Publishing these images..."
     for image in "${base_image}" "${run_image}" "${build_image}"; do
-      docker push ${image}
+      docker push "${image}"
     done
 else
     echo "To publish these images:"

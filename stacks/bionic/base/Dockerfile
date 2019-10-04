@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM cloudfoundry/cflinuxfs3
 ARG cnb_uid=1000
 ARG cnb_gid=1000
 

@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+LAYERS_DIR="$1"
+PLATFORM_DIR="$2"
+PLAN_PATH="$3"
+
+DROPLET_BUILDPACK_NAME=dev.kf.buildpacks.droplet
+DROPLET_BUILDPACK_VERSION=latest
+DROPLET_BUILDPACK_DIR=/buildpacks/${DROPLET_BUILDPACK_NAME}/${DROPLET_BUILDPACK_VERSION}
+
+# env vars expected by CF buildpacks
+export CF_STACK=cflinuxfs3
+
+# contain the entire build process under the /tmp/build directory
+BUILD_ROOT_DIR=/tmp/build
+BUILD_ARTIFACTS_CACHE_DIR=$BUILD_ROOT_DIR/cache
+BUILD_DIR=$BUILD_ROOT_DIR/app
+BUILDPACKS_DIR=$BUILD_ROOT_DIR/buildpacks
+BUILDPACKS_DOWNLOAD_DIR=$BUILD_ROOT_DIR/buildpackdownloads
+OUTPUT_BUILD_ARTIFACTS_CACHE=$BUILD_ROOT_DIR/output-cache
+OUTPUT_DROPLET=$BUILD_ROOT_DIR/droplet
+OUTPUT_METADATA=$BUILD_ROOT_DIR/result.json
+
+if [[ "$BUILDPACK_ORDER" == "" ]]; then
+  BUILDPACK_ORDER="$(cat $PLATFORM_DIR/env/BUILDPACK_ORDER)"
+fi
+if [[ "$BUILDPACK_ORDER" == "" ]]; then
+  echo "Environment variable BUILDPACK_ORDER is not set." 1>&2
+fi
+
+# copy the source code to the build dir
+mkdir -p $BUILD_ROOT_DIR
+cp -R /workspace $BUILD_DIR
+
+# replace this logic with smarter logic for getting the builder binary
+${DROPLET_BUILDPACK_DIR}/lib/builder \
+  -buildArtifactsCacheDir "$BUILD_ARTIFACTS_CACHE_DIR" \
+  -buildDir "$BUILD_DIR" \
+  -buildpackOrder "$BUILDPACK_ORDER" \
+  -buildpacksDir "$BUILDPACKS_DIR" \
+  -buildpacksDownloadDir "$BUILDPACKS_DOWNLOAD_DIR" \
+  -outputBuildArtifactsCache "$OUTPUT_BUILD_ARTIFACTS_CACHE" \
+  -outputDroplet "$OUTPUT_DROPLET" \
+  -outputMetadata "$OUTPUT_METADATA" \
+  -skipDetect # skip buildpack detect
+
+# Make a layer containing the full droplet
+# This is very inefficient since the CF layers are packed into one CNB layer
+DROPLET_LAYER=$LAYERS_DIR/droplet
+mkdir -p $DROPLET_LAYER
+cp $OUTPUT_DROPLET $DROPLET_LAYER/droplet
+echo 'launch = true' > $DROPLET_LAYER.toml
+
+# Make a layer for the launcher
+LAUNCHER_LAYER=$LAYERS_DIR/launcher
+mkdir -p $LAUNCHER_LAYER
+cp ${DROPLET_BUILDPACK_DIR}/lib/launcher $LAUNCHER_LAYER
+echo 'launch = true' > $LAUNCHER_LAYER.toml
+
+# TODO not sure if contents command should ever be skipped
+# The buildpackapplifecycle might have compiled references to a temp file into
+# the droplet.
+# See https://github.com/cloudfoundry/buildpackapplifecycle/blob/e0da56bad91ca5a169440752da62ab07222c0003/buildpackrunner/runner.go#L370
+# This is an attempt to discover those temp file references and find/replace them
+# Note: there might be other expected directories which will need fixing
+mkdir /tmp/extract
+tar xfz $DROPLET_LAYER/droplet -C /tmp/extract --strip-components 1
+CONTENTS_DIR=$(grep -R /tmp/contents /tmp/extract | head -n 1 | grep -o "/tmp/contents[0-9][0-9]*")
+rm -fr /tmp/extract
+if [[ "$CONTENTS_DIR" != "" ]]; then
+  CONTENTS_COMMAND=" && ln -s $DROPLET_LAYER $CONTENTS_DIR"
+fi
+
+# create the CNB metadata
+#
+# The runtime command for the processes first untars the whole droplet, then
+# (optionally) performs a grep call to fix references.
+#
+# The reason why this is at runtime is because the CNB launcher messes with the
+# same directories as the droplet ones. Namely, it tries to execute the
+# profile.d scripts. Doing so causes the buildpackapplifecycle launcher to fail
+# in some cases.
+COMMAND_PREFIX="tar xfz $DROPLET_LAYER/droplet -C $DROPLET_LAYER --strip-components 1 $CONTENTS_COMMAND && HOME=$DROPLET_LAYER/app DEPS_DIR=$DROPLET_LAYER/deps $LAUNCHER_LAYER/launcher $DROPLET_LAYER/app"
+processes="processes = ["
+for process_type in $(cat $OUTPUT_METADATA | jq -rc .processes[].type); do
+  command=$(cat $OUTPUT_METADATA | jq -cr ".processes[] | select(.type == \"$process_type\") | .command")
+  command="$COMMAND_PREFIX \\\"$command\\\" \\\"\\\""
+  processes="$processes{ type = \"$process_type\", command = \"$command\" }, "
+done
+processes="$processes]"
+processes=$(echo $processes | sed 's/\(.*\), /\1/')
+echo $processes >> $LAYERS_DIR/launch.toml

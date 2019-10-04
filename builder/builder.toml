@@ -1,4 +1,9 @@
 [[buildpacks]]
+id = "dev.kf.buildpacks.droplet"
+uri = "./droplet-buildpack/"
+latest = true
+
+[[buildpacks]]
 id = "org.cloudfoundry.archiveexpanding"
 uri = "./archive-expanding-cnb/"
 latest = true
@@ -47,6 +52,11 @@ latest = true
 id = "io.buildpacks.samples.go"
 uri = "./go-buildpack"
 latest = true
+
+[[groups]]
+buildpacks = [
+  { id = "dev.kf.buildpacks.droplet", version = "latest" },
+]
 
 [[groups]]
 buildpacks = [

@@ -60,6 +60,7 @@ run_pack(){
   "${temp_dir}/pack" $@
 }
 
+build_cf_buildpack "droplet-buildpack"
 build_cf_buildpack "archive-expanding-cnb"
 build_cf_buildpack "build-system-cnb"
 build_cf_buildpack "google-stackdriver-cnb"

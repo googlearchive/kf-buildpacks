@@ -1,0 +1,7 @@
+[buildpack]
+id = "dev.kf.buildpacks.droplet"
+version = "0.0.1"
+name = "Droplet Buildpack"
+
+[[stacks]]
+id = "io.buildpacks.stacks.bionic"

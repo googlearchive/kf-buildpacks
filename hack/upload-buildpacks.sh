@@ -39,18 +39,10 @@ function finish {
 trap finish EXIT
 cp -r "$rootpath/builder"/* "$temp_dir"
 
-# For each CF buildpack that we have to build
-build_cf_buildpack(){
-  echo "Building $1"
-  pushd "$temp_dir/$1"
-  [ -f "./ci/build.sh" ] && ./ci/build.sh
-  [ -f "./scripts/build.sh" ] && ./scripts/build.sh
-  popd
-}
 
 build_pack(){
-  PACK_VERSION=v0.2.1
-  PACK_SHA256=e0fc11016bf15f2d03197d1a6fd872f0524b47f53c6bd2731717b1d0b3c10f04
+  PACK_VERSION=v0.4.1
+  PACK_SHA256=fde82abd696600a79da07795d7a3f55d17ac40703c1c33c5f2b77ee3305171df
   curl -LJo "${temp_dir}/pack.tar.gz" https://github.com/buildpack/pack/releases/download/${PACK_VERSION}/pack-${PACK_VERSION}-linux.tgz
   tar xfz "${temp_dir}/pack.tar.gz" -C "${temp_dir}"
   [ "$PACK_SHA256" = "$(sha256sum < "${temp_dir}/pack.tar.gz" | cut -d' ' -f1)" ]
@@ -59,15 +51,6 @@ build_pack(){
 run_pack(){
   "${temp_dir}/pack" $@
 }
-
-build_cf_buildpack "archive-expanding-cnb"
-build_cf_buildpack "build-system-cnb"
-build_cf_buildpack "google-stackdriver-cnb"
-build_cf_buildpack "jvm-application-cnb"
-build_cf_buildpack "openjdk-cnb"
-build_cf_buildpack "procfile-cnb"
-build_cf_buildpack "spring-boot-cnb"
-build_cf_buildpack "tomcat-cnb"
 
 # Fill in our gcr.io registry for the builder
 builder_toml=$temp_dir/builder.toml

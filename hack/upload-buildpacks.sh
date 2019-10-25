@@ -54,7 +54,7 @@ run_pack(){
 
 # Fill in our gcr.io registry for the builder
 builder_toml=$temp_dir/builder.toml
-sed "s|REPLACE_WITH_REGISTRY|$registry|g" < "$builder_toml" > "$builder_toml.new"
+sed "s|\$\{REPLACE_WITH_REGISTRY\}|$registry|g" < "$builder_toml" > "$builder_toml.new"
 
 build_pack
 echo "building builder from $builder_config..."

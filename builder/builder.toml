@@ -74,5 +74,5 @@ group = [
 
 [stack]
 id = "io.buildpacks.stacks.bionic"
-run-image = "REPLACE_WITH_REGISTRY/run:latest"
-build-image = "REPLACE_WITH_REGISTRY/build:latest"
+run-image = "${REPLACE_WITH_REGISTRY}/run:latest"
+build-image = "${REPLACE_WITH_REGISTRY}/build:latest"

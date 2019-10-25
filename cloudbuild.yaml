@@ -1,0 +1,99 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This build configuration builds the buildpack-builder image and the runtime
+# images used for building/running buildpack apps.
+
+# The cloudbuild.tools.yaml build config is a prerequisite to this build config,
+# as images from that config are dependencies in this one.
+
+substitutions:
+  _IMAGE_SUFFIX: -edge
+
+steps:
+- id: base
+  name: gcr.io/cloud-builders/docker
+  args:
+  - build
+  - --tag=gcr.io/${PROJECT_ID}/base${_IMAGE_SUFFIX}
+  - stacks/bionic/base
+
+- id: base-push
+  name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - gcr.io/${PROJECT_ID}/base${_IMAGE_SUFFIX}
+  waitFor:
+  - base
+
+- id: build
+  name: gcr.io/cloud-builders/docker
+  args:
+  - build
+  - --build-arg
+  - base_image=gcr.io/${PROJECT_ID}/base${_IMAGE_SUFFIX}
+  - --tag=gcr.io/${PROJECT_ID}/build${_IMAGE_SUFFIX}
+  - stacks/bionic/build
+  waitFor:
+  - base-push
+
+- id: build-push
+  name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - gcr.io/${PROJECT_ID}/build${_IMAGE_SUFFIX}
+  waitFor:
+  - build
+
+- id: run
+  name: gcr.io/cloud-builders/docker
+  args:
+  - build
+  - --build-arg
+  - base_image=gcr.io/${PROJECT_ID}/base${_IMAGE_SUFFIX}
+  - --tag=gcr.io/${PROJECT_ID}/run${_IMAGE_SUFFIX}
+  - stacks/bionic/run
+  waitFor:
+  - base-push
+
+- id: run-push
+  name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - gcr.io/${PROJECT_ID}/run${_IMAGE_SUFFIX}
+  waitFor:
+  - run
+
+- id: preprocess-builder-image
+  name: gcr.io/${PROJECT_ID}/envsubst
+  env:
+  - REPLACE_WITH_REGISTRY=gcr.io/${PROJECT_ID}
+  args:
+  - builder/builder.toml
+  waitFor:
+  - '-' # wait for no-one
+
+- id: builder
+  name: gcr.io/${PROJECT_ID}/pack
+  args:
+  - create-builder
+  - --builder-config
+  - builder/builder.toml
+  - --publish
+  - gcr.io/${PROJECT_ID}/buildpack-builder${_IMAGE_SUFFIX}
+  waitFor:
+  - base-push
+  - build-push
+  - run-push
+  - preprocess-builder-image

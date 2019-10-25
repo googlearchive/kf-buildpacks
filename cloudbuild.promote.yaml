@@ -1,0 +1,117 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This build configuration is used to promote images by changing image suffixes.
+substitutions:
+  _FROM_SUFFIX: -edge
+  _TO_SUFFIX: ""
+
+steps:
+
+# base
+- id: base-pull
+  name: gcr.io/cloud-builders/docker
+  args:
+  - pull
+  - gcr.io/${PROJECT_ID}/base${_FROM_SUFFIX}
+  waitFor:
+  - "-"
+- id: base-tag
+  name: gcr.io/cloud-builders/docker
+  args:
+  - tag
+  - gcr.io/${PROJECT_ID}/base${_FROM_SUFFIX}
+  - gcr.io/${PROJECT_ID}/base${_TO_SUFFIX}
+  waitFor:
+  - base-pull
+- id: base-push
+  name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - gcr.io/${PROJECT_ID}/base${_TO_SUFFIX}
+  waitFor:
+  - base-tag
+
+# build
+- id: build-pull
+  name: gcr.io/cloud-builders/docker
+  args:
+  - pull
+  - gcr.io/${PROJECT_ID}/build${_FROM_SUFFIX}
+  waitFor:
+  - "-"
+- id: build-tag
+  name: gcr.io/cloud-builders/docker
+  args:
+  - tag
+  - gcr.io/${PROJECT_ID}/build${_FROM_SUFFIX}
+  - gcr.io/${PROJECT_ID}/build${_TO_SUFFIX}
+  waitFor:
+  - build-pull
+- id: build-push
+  name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - gcr.io/${PROJECT_ID}/build${_TO_SUFFIX}
+  waitFor:
+  - build-tag
+
+# run
+- id: run-pull
+  name: gcr.io/cloud-builders/docker
+  args:
+  - pull
+  - gcr.io/${PROJECT_ID}/run${_FROM_SUFFIX}
+  waitFor:
+  - "-"
+- id: run-tag
+  name: gcr.io/cloud-builders/docker
+  args:
+  - tag
+  - gcr.io/${PROJECT_ID}/run${_FROM_SUFFIX}
+  - gcr.io/${PROJECT_ID}/run${_TO_SUFFIX}
+  waitFor:
+  - run-pull
+- id: run-push
+  name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - gcr.io/${PROJECT_ID}/run${_TO_SUFFIX}
+  waitFor:
+  - run-tag
+
+# buildpack-builder
+- id: buildpack-builder-pull
+  name: gcr.io/cloud-builders/docker
+  args:
+  - pull
+  - gcr.io/${PROJECT_ID}/buildpack-builder${_FROM_SUFFIX}
+  waitFor:
+  - "-"
+- id: buildpack-builder-tag
+  name: gcr.io/cloud-builders/docker
+  args:
+  - tag
+  - gcr.io/${PROJECT_ID}/buildpack-builder${_FROM_SUFFIX}
+  - gcr.io/${PROJECT_ID}/buildpack-builder${_TO_SUFFIX}
+  waitFor:
+  - buildpack-builder-pull
+- id: buildpack-builder-push
+  name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - gcr.io/${PROJECT_ID}/buildpack-builder${_TO_SUFFIX}
+  waitFor:
+  - buildpack-builder-tag
+
